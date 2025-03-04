@@ -295,7 +295,7 @@
             name: '',
             welcomeText: '',
             responseTimeText: '',
-            poweredByText: 'Powered by n8n' // Default "Powered by" text
+            poweredByText: 'Powered by ai-agent-lab.ru' // Default "Powered by" text
         },
         style: {
             primaryColor: '',
