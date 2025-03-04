@@ -295,10 +295,7 @@
             name: '',
             welcomeText: '',
             responseTimeText: '',
-            poweredBy: {
-                text: 'Powered by ai-agent-lab.ru',
-                link: 'https://ai-agent-lab.ru'
-            }
+            poweredByText: 'Powered by n8n' // Default "Powered by" text
         },
         style: {
             primaryColor: '',
@@ -367,7 +364,7 @@
                 <button type="submit">Send</button>
             </div>
             <div class="chat-footer">
-                <a href="${config.branding.poweredBy.link}" target="_blank">${config.branding.poweredBy.text}</a>
+                <a href="https://n8n.partnerlinks.io/m8a94i19zhqq?utm_source=nocodecreative.io" target="_blank">${config.branding.poweredByText}</a>
             </div>
         </div>
     `;
