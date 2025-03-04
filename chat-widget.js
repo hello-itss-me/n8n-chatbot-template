@@ -1,4 +1,4 @@
-// chat-widget.js - Your Custom Chat Widget
+// chat-widget.js - Your Custom Chat Widget (Updated Powered-by Text Handling)
 
 (function() {
     // --- 1. Configuration ---
@@ -211,7 +211,12 @@
 
     const footer = document.createElement('div');
     footer.className = 'chat-footer';
-    footer.innerHTML = `Powered by <a href="#">${config.branding.poweredByText}</a>`; // Replace # with your link if needed
+
+    // --- 3.1. Dynamically create the "Powered by" link based on config ---
+    const poweredByLink = document.createElement('a');
+    poweredByLink.href = '#'; // You can set a default link or leave it '#'
+    poweredByLink.textContent = config.branding.poweredByText; // Use config.branding.poweredByText here!
+    footer.appendChild(poweredByLink);
 
     chatContainer.appendChild(header);
     chatContainer.appendChild(messagesArea);
