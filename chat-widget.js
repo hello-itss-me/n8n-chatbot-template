@@ -1,503 +1,299 @@
-// Chat Widget Script
+// chat-widget.js - Your Custom Chat Widget
+
 (function() {
-    // Create and inject styles
-    const styles = `
-        .n8n-chat-widget {
-            --chat--color-primary: var(--n8n-chat-primary-color, #854fff);
-            --chat--color-secondary: var(--n8n-chat-secondary-color, #6b3fd4);
-            --chat--color-background: var(--n8n-chat-background-color, #ffffff);
-            --chat--color-font: var(--n8n-chat-font-color, #333333);
-            font-family: 'Geist Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-        }
-
-        .n8n-chat-widget .chat-container {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000;
-            display: none;
-            width: 380px;
-            height: 600px;
-            background: var(--chat--color-background);
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(133, 79, 255, 0.15);
-            border: 1px solid rgba(133, 79, 255, 0.2);
-            overflow: hidden;
-            font-family: inherit;
-        }
-
-        .n8n-chat-widget .chat-container.position-left {
-            right: auto;
-            left: 20px;
-        }
-
-        .n8n-chat-widget .chat-container.open {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .n8n-chat-widget .brand-header {
-            padding: 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            border-bottom: 1px solid rgba(133, 79, 255, 0.1);
-            position: relative;
-        }
-
-        .n8n-chat-widget .close-button {
-            position: absolute;
-            right: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: var(--chat--color-font);
-            cursor: pointer;
-            padding: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: color 0.2s;
-            font-size: 20px;
-            opacity: 0.6;
-        }
-
-        .n8n-chat-widget .close-button:hover {
-            opacity: 1;
-        }
-
-        .n8n-chat-widget .brand-header img {
-            width: 32px;
-            height: 32px;
-        }
-
-        .n8n-chat-widget .brand-header span {
-            font-size: 18px;
-            font-weight: 500;
-            color: var(--chat--color-font);
-        }
-
-        .n8n-chat-widget .new-conversation {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            padding: 20px;
-            text-align: center;
-            width: 100%;
-            max-width: 300px;
-        }
-
-        .n8n-chat-widget .welcome-text {
-            font-size: 24px;
-            font-weight: 600;
-            color: var(--chat--color-font);
-            margin-bottom: 24px;
-            line-height: 1.3;
-        }
-
-        .n8n-chat-widget .new-chat-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            width: 100%;
-            padding: 16px 24px;
-            background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: transform 0.3s;
-            font-weight: 500;
-            font-family: inherit;
-            margin-bottom: 12px;
-        }
-
-        .n8n-chat-widget .new-chat-btn:hover {
-            transform: scale(1.02);
-        }
-
-        .n8n-chat-widget .message-icon {
-            width: 20px;
-            height: 20px;
-        }
-
-        .n8n-chat-widget .response-text {
-            font-size: 14px;
-            color: var(--chat--color-font);
-            opacity: 0.7;
-            margin: 0;
-        }
-
-        .n8n-chat-widget .chat-interface {
-            display: none;
-            flex-direction: column;
-            height: 100%;
-        }
-
-        .n8n-chat-widget .chat-interface.active {
-            display: flex;
-        }
-
-        .n8n-chat-widget .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            background: var(--chat--color-background);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .n8n-chat-widget .chat-message {
-            padding: 12px 16px;
-            margin: 8px 0;
-            border-radius: 12px;
-            max-width: 80%;
-            word-wrap: break-word;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-
-        .n8n-chat-widget .chat-message.user {
-            background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);
-            color: white;
-            align-self: flex-end;
-            box-shadow: 0 4px 12px rgba(133, 79, 255, 0.2);
-            border: none;
-        }
-
-        .n8n-chat-widget .chat-message.bot {
-            background: var(--chat--color-background);
-            border: 1px solid rgba(133, 79, 255, 0.2);
-            color: var(--chat--color-font);
-            align-self: flex-start;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-
-        .n8n-chat-widget .chat-input {
-            padding: 16px;
-            background: var(--chat--color-background);
-            border-top: 1px solid rgba(133, 79, 255, 0.1);
-            display: flex;
-            gap: 8px;
-        }
-
-        .n8n-chat-widget .chat-input textarea {
-            flex: 1;
-            padding: 12px;
-            border: 1px solid rgba(133, 79, 255, 0.2);
-            border-radius: 8px;
-            background: var(--chat--color-background);
-            color: var(--chat--color-font);
-            resize: none;
-            font-family: inherit;
-            font-size: 14px;
-        }
-
-        .n8n-chat-widget .chat-input textarea::placeholder {
-            color: var(--chat--color-font);
-            opacity: 0.6;
-        }
-
-        .n8n-chat-widget .chat-input button {
-            background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 0 20px;
-            cursor: pointer;
-            transition: transform 0.2s;
-            font-family: inherit;
-            font-weight: 500;
-        }
-
-        .n8n-chat-widget .chat-input button:hover {
-            transform: scale(1.05);
-        }
-
-        .n8n-chat-widget .chat-toggle {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 60px;
-            height: 60px;
-            border-radius: 30px;
-            background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);
-            color: white;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(133, 79, 255, 0.3);
-            z-index: 999;
-            transition: transform 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .n8n-chat-widget .chat-toggle.position-left {
-            right: auto;
-            left: 20px;
-        }
-
-        .n8n-chat-widget .chat-toggle:hover {
-            transform: scale(1.05);
-        }
-
-        .n8n-chat-widget .chat-toggle svg {
-            width: 24px;
-            height: 24px;
-            fill: currentColor;
-        }
-
-        .n8n-chat-widget .chat-footer {
-            padding: 8px;
-            text-align: center;
-            background: var(--chat--color-background);
-            border-top: 1px solid rgba(133, 79, 255, 0.1);
-        }
-
-        .n8n-chat-widget .chat-footer a {
-            color: var(--chat--color-primary);
-            text-decoration: none;
-            font-size: 12px;
-            opacity: 0.8;
-            transition: opacity 0.2s;
-            font-family: inherit;
-        }
-
-        .n8n-chat-widget .chat-footer a:hover {
-            opacity: 1;
-        }
-    `;
-
-    // Load Geist font
-    const fontLink = document.createElement('link');
-    fontLink.rel = 'stylesheet';
-    fontLink.href = 'https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/style.css';
-    document.head.appendChild(fontLink);
-
-    // Inject styles
-    const styleSheet = document.createElement('style');
-    styleSheet.textContent = styles;
-    document.head.appendChild(styleSheet);
-
-    // Default configuration
+    // --- 1. Configuration ---
     const defaultConfig = {
         webhook: {
-            url: '',
-            route: ''
+            url: '', // Replace with your default webhook URL if needed
+            route: 'general' // Default webhook route
         },
         branding: {
-            logo: '',
-            name: '',
-            welcomeText: '',
-            responseTimeText: '',
-            poweredBy: {
-                text: 'Powered by me',
-                link: 'https://n8n.partnerlinks.io/m8a94i19zhqq?utm_source=nocodecreative.io'
-            }
+            logo: '', // URL to default logo, leave empty for no logo
+            name: 'Chat Support', // Default company name
+            welcomeText: 'Hello! How can I help you today?', // Default welcome message
+            responseTimeText: 'Typically replies instantly', // Default response time text
+            poweredByText: 'Powered by Your Brand' // Default "Powered by" text
         },
         style: {
-            primaryColor: '',
-            secondaryColor: '',
-            position: 'right',
-            backgroundColor: '#ffffff',
-            fontColor: '#333333'
+            primaryColor: '#007bff', // Default primary color (Bootstrap blue)
+            secondaryColor: '#6c757d', // Default secondary color (Bootstrap gray)
+            position: 'right', // Default widget position: 'right' or 'left'
+            backgroundColor: '#f8f9fa', // Default background color (light gray)
+            fontColor: '#212529' // Default font color (dark gray)
         }
     };
 
-    // Merge user config with defaults
-    const config = window.ChatWidgetConfig ? 
-        {
-            webhook: { ...defaultConfig.webhook, ...window.ChatWidgetConfig.webhook },
-            branding: { ...defaultConfig.branding, ...window.ChatWidgetConfig.branding },
-            style: { ...defaultConfig.style, ...window.ChatWidgetConfig.style }
-        } : defaultConfig;
+    // Merge user configuration from window.ChatWidgetConfig with defaults
+    const config = {
+        webhook: { ...defaultConfig.webhook, ...(window.ChatWidgetConfig?.webhook || {}) },
+        branding: { ...defaultConfig.branding, ...(window.ChatWidgetConfig?.branding || {}) },
+        style: { ...defaultConfig.style, ...(window.ChatWidgetConfig?.style || {}) }
+    };
 
-    // Prevent multiple initializations
-    if (window.N8NChatWidgetInitialized) return;
-    window.N8NChatWidgetInitialized = true;
+    // --- 2. CSS Styles Injection ---
+    const styleElement = document.createElement('style');
+    styleElement.textContent = `
+        .custom-chat-widget {
+            --widget-primary-color: ${config.style.primaryColor};
+            --widget-secondary-color: ${config.style.secondaryColor};
+            --widget-background-color: ${config.style.backgroundColor};
+            --widget-font-color: ${config.style.fontColor};
+            font-family: sans-serif; /* You can customize the font-family */
+        }
 
-    let currentSessionId = '';
+        .custom-chat-widget .chat-toggle-button {
+            position: fixed;
+            bottom: 20px;
+            ${config.style.position}: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: var(--widget-primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s;
+            z-index: 1000;
+        }
 
-    // Create widget container
-    const widgetContainer = document.createElement('div');
-    widgetContainer.className = 'n8n-chat-widget';
-    
-    // Set CSS variables for colors
-    widgetContainer.style.setProperty('--n8n-chat-primary-color', config.style.primaryColor);
-    widgetContainer.style.setProperty('--n8n-chat-secondary-color', config.style.secondaryColor);
-    widgetContainer.style.setProperty('--n8n-chat-background-color', config.style.backgroundColor);
-    widgetContainer.style.setProperty('--n8n-chat-font-color', config.style.fontColor);
+        .custom-chat-widget .chat-toggle-button:hover {
+            background-color: var(--widget-secondary-color);
+        }
+
+        .custom-chat-widget .chat-container {
+            position: fixed;
+            bottom: 90px; /* Adjust based on toggle button size */
+            ${config.style.position}: 20px;
+            width: 350px;
+            max-height: 500px;
+            background-color: var(--widget-background-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            display: none; /* Initially hidden */
+            flex-direction: column;
+            z-index: 1001;
+        }
+
+        .custom-chat-widget .chat-container.open {
+            display: flex; /* Show when 'open' class is added */
+        }
+
+        .custom-chat-widget .chat-header {
+            background-color: var(--widget-primary-color);
+            color: white;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .custom-chat-widget .chat-header-title {
+            font-weight: bold;
+            margin: 0;
+            font-size: 1.1em;
+        }
+
+        .custom-chat-widget .chat-header-close-button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .custom-chat-widget .chat-header-close-button:hover {
+            opacity: 1;
+        }
+
+        .custom-chat-widget .chat-messages {
+            padding: 15px;
+            overflow-y: auto;
+            flex-grow: 1; /* Take up remaining space */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .custom-chat-widget .message {
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            word-wrap: break-word;
+            max-width: 80%;
+        }
+
+        .custom-chat-widget .message.user {
+            background-color: var(--widget-primary-color);
+            color: white;
+            align-self: flex-end; /* Align user messages to the right */
+        }
+
+        .custom-chat-widget .message.bot {
+            background-color: #e9ecef; /* Light gray for bot messages */
+            color: var(--widget-font-color);
+            align-self: flex-start; /* Align bot messages to the left */
+        }
+
+        .custom-chat-widget .chat-input-area {
+            padding: 10px 15px;
+            border-top: 1px solid #ddd;
+            display: flex;
+        }
+
+        .custom-chat-widget .chat-input-area input[type="text"] {
+            flex-grow: 1;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            margin-right: 8px;
+        }
+
+        .custom-chat-widget .chat-input-area button {
+            background-color: var(--widget-primary-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .custom-chat-widget .chat-input-area button:hover {
+            background-color: var(--widget-secondary-color);
+        }
+
+        .custom-chat-widget .chat-footer {
+            padding: 8px 15px;
+            text-align: center;
+            background-color: var(--widget-background-color);
+            border-top: 1px solid #ddd;
+            font-size: 0.8em;
+            color: #777;
+        }
+
+        .custom-chat-widget .chat-footer a {
+            color: var(--widget-primary-color);
+            text-decoration: none;
+        }
+    `;
+    document.head.appendChild(styleElement);
+
+
+    // --- 3. Widget HTML Structure ---
+    const widgetDiv = document.createElement('div');
+    widgetDiv.className = 'custom-chat-widget';
+
+    const toggleButton = document.createElement('button');
+    toggleButton.className = 'chat-toggle-button';
+    toggleButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="M17 11V5"></path><path d="M7 11V5"></path></svg>'; // Example chat icon
 
     const chatContainer = document.createElement('div');
-    chatContainer.className = `chat-container${config.style.position === 'left' ? ' position-left' : ''}`;
-    
-    const newConversationHTML = `
-        <div class="brand-header">
-            <img src="${config.branding.logo}" alt="${config.branding.name}">
-            <span>${config.branding.name}</span>
-            <button class="close-button">×</button>
-        </div>
-        <div class="new-conversation">
-            <h2 class="welcome-text">${config.branding.welcomeText}</h2>
-            <button class="new-chat-btn">
-                <svg class="message-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.2L4 17.2V4h16v12z"/>
-                </svg>
-                Send us a message
-            </button>
-            <p class="response-text">${config.branding.responseTimeText}</p>
-        </div>
-    `;
+    chatContainer.className = 'chat-container';
 
-    const chatInterfaceHTML = `
-        <div class="chat-interface">
-            <div class="brand-header">
-                <img src="${config.branding.logo}" alt="${config.branding.name}">
-                <span>${config.branding.name}</span>
-                <button class="close-button">×</button>
-            </div>
-            <div class="chat-messages"></div>
-            <div class="chat-input">
-                <textarea placeholder="Type your message here..." rows="1"></textarea>
-                <button type="submit">Send</button>
-            </div>
-            <div class="chat-footer">
-                <a href="${config.branding.poweredBy.link}" target="_blank">${config.branding.poweredBy.text}</a>
-            </div>
-        </div>
-    `;
-    
-    chatContainer.innerHTML = newConversationHTML + chatInterfaceHTML;
-    
-    const toggleButton = document.createElement('button');
-    toggleButton.className = `chat-toggle${config.style.position === 'left' ? ' position-left' : ''}`;
-    toggleButton.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path d="M12 2C6.477 2 2 6.477 2 12c0 1.821.487 3.53 1.338 5L2.5 21.5l4.5-.838A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18c-1.476 0-2.886-.313-4.156-.878l-3.156.586.586-3.156A7.962 7.962 0 014 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8z"/>
-        </svg>`;
-    
-    widgetContainer.appendChild(chatContainer);
-    widgetContainer.appendChild(toggleButton);
-    document.body.appendChild(widgetContainer);
+    const header = document.createElement('div');
+    header.className = 'chat-header';
+    header.innerHTML = `<h3 class="chat-header-title">${config.branding.name}</h3><button class="chat-header-close-button">×</button>`;
 
-    const newChatBtn = chatContainer.querySelector('.new-chat-btn');
-    const chatInterface = chatContainer.querySelector('.chat-interface');
-    const messagesContainer = chatContainer.querySelector('.chat-messages');
-    const textarea = chatContainer.querySelector('textarea');
-    const sendButton = chatContainer.querySelector('button[type="submit"]');
+    const messagesArea = document.createElement('div');
+    messagesArea.className = 'chat-messages';
 
-    function generateUUID() {
-        return crypto.randomUUID();
-    }
+    const inputArea = document.createElement('div');
+    inputArea.className = 'chat-input-area';
+    inputArea.innerHTML = `<input type="text" placeholder="Type your message..."><button>Send</button>`;
 
-    async function startNewConversation() {
-        currentSessionId = generateUUID();
-        const data = [{
-            action: "loadPreviousSession",
-            sessionId: currentSessionId,
-            route: config.webhook.route,
-            metadata: {
-                userId: ""
-            }
-        }];
+    const footer = document.createElement('div');
+    footer.className = 'chat-footer';
+    footer.innerHTML = `Powered by <a href="#">${config.branding.poweredByText}</a>`; // Replace # with your link if needed
 
-        try {
-            const response = await fetch(config.webhook.url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            });
+    chatContainer.appendChild(header);
+    chatContainer.appendChild(messagesArea);
+    chatContainer.appendChild(inputArea);
+    chatContainer.appendChild(footer);
 
-            const responseData = await response.json();
-            chatContainer.querySelector('.brand-header').style.display = 'none';
-            chatContainer.querySelector('.new-conversation').style.display = 'none';
-            chatInterface.classList.add('active');
+    widgetDiv.appendChild(toggleButton);
+    widgetDiv.appendChild(chatContainer);
+    document.body.appendChild(widgetDiv);
 
-            const botMessageDiv = document.createElement('div');
-            botMessageDiv.className = 'chat-message bot';
-            botMessageDiv.textContent = Array.isArray(responseData) ? responseData[0].output : responseData.output;
-            messagesContainer.appendChild(botMessageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        } catch (error) {
-            console.error('Error:', error);
-        }
-    }
 
-    async function sendMessage(message) {
-        const messageData = {
-            action: "sendMessage",
-            sessionId: currentSessionId,
-            route: config.webhook.route,
-            chatInput: message,
-            metadata: {
-                userId: ""
-            }
-        };
+    // --- 4. Event Listeners and Functions ---
+    const chatInput = inputArea.querySelector('input[type="text"]');
+    const sendButton = inputArea.querySelector('button');
+    const closeButton = header.querySelector('.chat-header-close-button');
 
-        const userMessageDiv = document.createElement('div');
-        userMessageDiv.className = 'chat-message user';
-        userMessageDiv.textContent = message;
-        messagesContainer.appendChild(userMessageDiv);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-        try {
-            const response = await fetch(config.webhook.url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(messageData)
-            });
-            
-            const data = await response.json();
-            
-            const botMessageDiv = document.createElement('div');
-            botMessageDiv.className = 'chat-message bot';
-            botMessageDiv.textContent = Array.isArray(data) ? data[0].output : data.output;
-            messagesContainer.appendChild(botMessageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        } catch (error) {
-            console.error('Error:', error);
-        }
-    }
-
-    newChatBtn.addEventListener('click', startNewConversation);
-    
-    sendButton.addEventListener('click', () => {
-        const message = textarea.value.trim();
-        if (message) {
-            sendMessage(message);
-            textarea.value = '';
-        }
-    });
-    
-    textarea.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            const message = textarea.value.trim();
-            if (message) {
-                sendMessage(message);
-                textarea.value = '';
-            }
-        }
-    });
-    
     toggleButton.addEventListener('click', () => {
         chatContainer.classList.toggle('open');
     });
 
-    // Add close button handlers
-    const closeButtons = chatContainer.querySelectorAll('.close-button');
-    closeButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            chatContainer.classList.remove('open');
-        });
+    closeButton.addEventListener('click', () => {
+        chatContainer.classList.remove('open');
     });
+
+    sendButton.addEventListener('click', sendMessage);
+
+    chatInput.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter' && !event.shiftKey) { // Send on Enter, not Shift+Enter
+            event.preventDefault(); // Prevent default newline behavior in input
+            sendMessage();
+        }
+    });
+
+
+    function sendMessage() {
+        const messageText = chatInput.value.trim();
+        if (messageText) {
+            displayMessage(messageText, 'user'); // Display user message immediately
+            chatInput.value = ''; // Clear input
+
+            // Send message to webhook
+            fetch(config.webhook.url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: messageText,
+                    route: config.webhook.route // Include route in the payload
+                    // You can add more data here if needed, like sessionId, userId, etc.
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.response) { // Assuming the response from webhook is in data.response
+                    displayMessage(data.response, 'bot'); // Display bot response
+                } else if (data && typeof data === 'string'){ // Handle string response directly
+                    displayMessage(data, 'bot');
+                } else {
+                    displayMessage("Sorry, I couldn't understand. Please try again.", 'bot'); // Handle error/no response
+                }
+            })
+            .catch(error => {
+                console.error('Error sending message to webhook:', error);
+                displayMessage("Failed to send message. Please check your connection and try again.", 'bot'); // Display error to user
+            });
+        }
+    }
+
+    function displayMessage(message, sender) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}`;
+        messageDiv.textContent = message;
+        messagesArea.appendChild(messageDiv);
+        messagesArea.scrollTop = messagesArea.scrollHeight; // Scroll to bottom after new message
+    }
+
+    // --- 5. Initial Welcome Message (Optional) ---
+    displayMessage(config.branding.welcomeText, 'bot');
+    if (config.branding.responseTimeText) {
+        displayMessage(config.branding.responseTimeText, 'bot'); // Display response time text as a bot message
+    }
+
+
 })();
